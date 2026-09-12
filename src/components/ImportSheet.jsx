@@ -1,0 +1,137 @@
+import { useState } from "react";
+import * as XLSX from "xlsx";
+
+const FIELD_ALIASES = {
+  date: ["date"],
+  amount: ["montant", "amount", "somme"],
+  label: ["description", "libellé", "libelle", "nom"],
+  paid: ["payé", "paye", "paid"],
+  confirmationNumber: ["confirmation", "no confirmation", "numéro de confirmation", "numero de confirmation"],
+  note: ["note", "commentaire"],
+};
+
+function guessField(header) {
+  const h = String(header || "").trim().toLowerCase();
+  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+    if (aliases.some((a) => h.includes(a))) return field;
+  }
+  return null;
+}
+
+function excelDateToStr(v) {
+  if (typeof v === "number") {
+    const d = XLSX.SSF.parse_date_code(v);
+    return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+  }
+  const s = String(v ?? "").trim();
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  return "";
+}
+
+const FIELD_LABELS = {
+  date: "Date", amount: "Montant", label: "Description",
+  paid: "Payé", confirmationNumber: "No confirmation", note: "Note",
+};
+
+export default function ImportSheet({ onImport, onClose }) {
+  const [rows, setRows] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  const [mapping, setMapping] = useState({});
+  const [fileName, setFileName] = useState("");
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const wb = XLSX.read(evt.target.result, { type: "binary" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
+      if (data.length < 2) { setHeaders([]); setRows([]); return; }
+      const hdrs = data[0];
+      const body = data.slice(1).filter((r) => r.some((c) => c !== undefined && c !== ""));
+      const guessed = {};
+      hdrs.forEach((h, i) => {
+        const f = guessField(h);
+        if (f && guessed[f] === undefined) guessed[f] = i;
+      });
+      setHeaders(hdrs);
+      setMapping(guessed);
+      setRows(body);
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const confirmImport = () => {
+    if (mapping.date === undefined || mapping.amount === undefined) {
+      alert("Associe au moins une colonne Date et une colonne Montant avant d'importer.");
+      return;
+    }
+    const toImport = rows
+      .map((r) => {
+        const entry = {
+          date: excelDateToStr(r[mapping.date]),
+          amount: Number(r[mapping.amount]) || 0,
+          label: mapping.label !== undefined ? String(r[mapping.label] ?? "") : "Importé",
+        };
+        if (mapping.note !== undefined) entry.note = String(r[mapping.note] ?? "");
+        if (mapping.confirmationNumber !== undefined) {
+          entry.confirmationNumber = String(r[mapping.confirmationNumber] ?? "");
+        }
+        if (mapping.paid !== undefined) {
+          const v = String(r[mapping.paid] ?? "").trim().toLowerCase();
+          entry.paid = ["oui", "yes", "true", "1", "x"].includes(v);
+        }
+        return entry;
+      })
+      .filter((e) => e.date);
+    onImport(toImport);
+  };
+
+  return (
+    <div className="editor-overlay" onClick={onClose}>
+      <div className="import-panel" onClick={(e) => e.stopPropagation()}>
+        <h3 className="serif">Importer un fichier</h3>
+        <p className="import-hint">Exporte ta feuille Google Sheet en CSV ou XLSX, puis choisis-la ici.</p>
+
+        <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} />
+        {fileName && <p className="import-file">{fileName} — {rows.length} ligne(s) détectée(s)</p>}
+
+        {headers.length > 0 && (
+          <div className="import-mapping">
+            {Object.keys(FIELD_LABELS).map((field) => (
+              <div className="field" key={field}>
+                <label>{FIELD_LABELS[field]}{(field === "date" || field === "amount") && " *"}</label>
+                <select
+                  value={mapping[field] ?? ""}
+                  onChange={(e) =>
+                    setMapping((m) => ({
+                      ...m,
+                      [field]: e.target.value === "" ? undefined : Number(e.target.value),
+                    }))
+                  }
+                >
+                  <option value="">— Ignorer —</option>
+                  {headers.map((h, i) => (
+                    <option key={i} value={i}>{String(h)}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="editor-actions">
+          <button className="btn secondary small" onClick={onClose}>Annuler</button>
+          <button className="btn small" disabled={rows.length === 0} onClick={confirmImport}>
+            Importer {rows.length > 0 ? `(${rows.length})` : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
