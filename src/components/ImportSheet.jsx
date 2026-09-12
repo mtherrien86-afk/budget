@@ -3,11 +3,17 @@ import * as XLSX from "xlsx";
 
 const FIELD_ALIASES = {
   date: ["date"],
-  amount: ["montant", "amount", "somme"],
+  amount: ["montant", "coût", "cout", "amount", "somme"],
   label: ["description", "libellé", "libelle", "nom"],
+  confirmed: ["confirmé", "confirme"],
   paid: ["payé", "paye", "paid"],
   confirmationNumber: ["confirmation", "no confirmation", "numéro de confirmation", "numero de confirmation"],
-  note: ["note", "commentaire"],
+  note: ["note", "commentaire", "information", "supplémentaire"],
+};
+
+const FIELD_LABELS = {
+  date: "Date", amount: "Montant", label: "Description", confirmed: "Confirmé",
+  paid: "Payé", confirmationNumber: "No confirmation", note: "Note",
 };
 
 function guessField(header) {
@@ -16,6 +22,12 @@ function guessField(header) {
     if (aliases.some((a) => h.includes(a))) return field;
   }
   return null;
+}
+
+function toBool(v) {
+  if (typeof v === "boolean") return v;
+  const s = String(v ?? "").trim().toLowerCase();
+  return ["oui", "yes", "true", "1", "x", "vrai"].includes(s);
 }
 
 function excelDateToStr(v) {
@@ -31,16 +43,12 @@ function excelDateToStr(v) {
   return "";
 }
 
-const FIELD_LABELS = {
-  date: "Date", amount: "Montant", label: "Description",
-  paid: "Payé", confirmationNumber: "No confirmation", note: "Note",
-};
-
 export default function ImportSheet({ onImport, onClose }) {
   const [rows, setRows] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [mapping, setMapping] = useState({});
   const [fileName, setFileName] = useState("");
+  const [yearOverride, setYearOverride] = useState("");
 
   const handleFile = (e) => {
     const file = e.target.files[0];
@@ -71,10 +79,18 @@ export default function ImportSheet({ onImport, onClose }) {
       alert("Associe au moins une colonne Date et une colonne Montant avant d'importer.");
       return;
     }
+    let lastRawDate; // pour les dates "fusionnées" : une cellule vide reprend la date de la ligne précédente
     const toImport = rows
       .map((r) => {
+        let rawDate = r[mapping.date];
+        if (rawDate === undefined || rawDate === null || rawDate === "") rawDate = lastRawDate;
+        else lastRawDate = rawDate;
+
+        let date = excelDateToStr(rawDate);
+        if (date && yearOverride) date = `${yearOverride}${date.slice(4)}`;
+
         const entry = {
-          date: excelDateToStr(r[mapping.date]),
+          date,
           amount: Number(r[mapping.amount]) || 0,
           label: mapping.label !== undefined ? String(r[mapping.label] ?? "") : "Importé",
         };
@@ -82,47 +98,59 @@ export default function ImportSheet({ onImport, onClose }) {
         if (mapping.confirmationNumber !== undefined) {
           entry.confirmationNumber = String(r[mapping.confirmationNumber] ?? "");
         }
-        if (mapping.paid !== undefined) {
-          const v = String(r[mapping.paid] ?? "").trim().toLowerCase();
-          entry.paid = ["oui", "yes", "true", "1", "x"].includes(v);
-        }
+        if (mapping.paid !== undefined) entry.paid = toBool(r[mapping.paid]);
+        if (mapping.confirmed !== undefined) entry.confirmed = toBool(r[mapping.confirmed]);
         return entry;
       })
       .filter((e) => e.date);
     onImport(toImport);
   };
 
+  const thisYear = new Date().getFullYear();
+  const yearOptions = [];
+  for (let y = thisYear - 3; y <= thisYear + 3; y++) yearOptions.push(y);
+
   return (
     <div className="editor-overlay" onClick={onClose}>
       <div className="import-panel" onClick={(e) => e.stopPropagation()}>
         <h3 className="serif">Importer un fichier</h3>
-        <p className="import-hint">Exporte ta feuille Google Sheet en CSV ou XLSX, puis choisis-la ici.</p>
+        <p className="import-hint">Exporte ta feuille Google Sheet ou Excel en CSV/XLSX, puis choisis-la ici.</p>
 
         <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} />
         {fileName && <p className="import-file">{fileName} — {rows.length} ligne(s) détectée(s)</p>}
 
         {headers.length > 0 && (
-          <div className="import-mapping">
-            {Object.keys(FIELD_LABELS).map((field) => (
-              <div className="field" key={field}>
-                <label>{FIELD_LABELS[field]}{(field === "date" || field === "amount") && " *"}</label>
-                <select
-                  value={mapping[field] ?? ""}
-                  onChange={(e) =>
-                    setMapping((m) => ({
-                      ...m,
-                      [field]: e.target.value === "" ? undefined : Number(e.target.value),
-                    }))
-                  }
-                >
-                  <option value="">— Ignorer —</option>
-                  {headers.map((h, i) => (
-                    <option key={i} value={i}>{String(h)}</option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="import-mapping">
+              {Object.keys(FIELD_LABELS).map((field) => (
+                <div className="field" key={field}>
+                  <label>{FIELD_LABELS[field]}{(field === "date" || field === "amount") && " *"}</label>
+                  <select
+                    value={mapping[field] ?? ""}
+                    onChange={(e) =>
+                      setMapping((m) => ({
+                        ...m,
+                        [field]: e.target.value === "" ? undefined : Number(e.target.value),
+                      }))
+                    }
+                  >
+                    <option value="">— Ignorer —</option>
+                    {headers.map((h, i) => (
+                      <option key={i} value={i}>{String(h)}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+
+            <div className="field" style={{ marginTop: 6 }}>
+              <label>Forcer l'année (optionnel — garde le mois/jour, change juste l'année)</label>
+              <select value={yearOverride} onChange={(e) => setYearOverride(e.target.value)}>
+                <option value="">— Garder les dates du fichier —</option>
+                {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+          </>
         )}
 
         <div className="editor-actions">
