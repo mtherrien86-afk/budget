@@ -4,6 +4,7 @@ import { useBudgets } from "./hooks/useBudgets";
 import { useBudgetData } from "./hooks/useBudgetData";
 import { useYears } from "./hooks/useYears";
 import { useTheme } from "./hooks/useTheme";
+import { useTypes } from "./hooks/useTypes";
 import { entryYear } from "./utils/helpers";
 import Login from "./components/Login";
 import BudgetSwitcher from "./components/BudgetSwitcher";
@@ -34,6 +35,7 @@ export default function App() {
 
   const data = useBudgetData(activeBudgetId);
   const years = useYears(activeBudgetId);
+  const typesHook = useTypes(activeBudgetId);
 
   if (auth.loading) return <div className="loading-screen">Chargement…</div>;
   if (!auth.user) return <Login auth={auth} />;
@@ -44,7 +46,22 @@ export default function App() {
   const archivedYears = allYears.filter((y) => y !== CURRENT_YEAR && years.isArchived(y));
 
   const handleGenerateYear = async (year) => {
-    await data.generateYear(year);
+    const typeIdByPlanItem = {};
+    for (const pi of data.planItems) {
+      typeIdByPlanItem[pi.id] = await typesHook.findOrCreateType(pi.label);
+    }
+    await data.generateYear(year, typeIdByPlanItem);
+
+    // Solde de départ = solde prévisionnel de fin d'année précédente
+    // (son solde de départ + toutes ses transactions, payées ou non).
+    const prevYearEntries = data.entries.filter((en) => entryYear(en) === year - 1);
+    if (prevYearEntries.length > 0 || years.getStartingBalance(year - 1) !== 0) {
+      const prevEnding =
+        years.getStartingBalance(year - 1) +
+        prevYearEntries.reduce((s, en) => s + (Number(en.amount) || 0), 0);
+      await years.setStartingBalance(year, prevEnding);
+    }
+
     setActiveTab(year);
   };
 
@@ -139,6 +156,7 @@ export default function App() {
                 startingBalance={years.getStartingBalance(activeTab)}
                 setStartingBalance={(v) => years.setStartingBalance(activeTab, v)}
                 onClearYear={() => data.clearYear(activeTab)}
+                types={typesHook.types}
               />
             )}
           </div>
@@ -150,11 +168,15 @@ export default function App() {
           entry={editing}
           onClose={() => setEditing(null)}
           onSave={(patch) => {
-            if (editing.isNew) data.addEntry(patch);
-            else data.updateEntry(editing.id, patch);
+            const { isNew, readOnly, id, ...clean } = patch;
+            if (editing.isNew) data.addEntry(clean);
+            else data.updateEntry(editing.id, { ...clean, isNew: false });
             setEditing(null);
           }}
           onDelete={() => { data.deleteEntry(editing.id); setEditing(null); }}
+          types={typesHook.types}
+          onCreateType={typesHook.createType}
+          onUpdateType={typesHook.updateType}
         />
       )}
 
@@ -162,7 +184,12 @@ export default function App() {
         <ImportSheet
           onClose={() => setImporting(false)}
           onImport={async (rows) => {
-            await data.importEntries(rows);
+            const withType = [];
+            for (const r of rows) {
+              const typeId = r.label ? await typesHook.findOrCreateType(r.label) : null;
+              withType.push({ ...r, typeId });
+            }
+            await data.importEntries(withType);
             setImporting(false);
             setActiveTab(CURRENT_YEAR);
           }}

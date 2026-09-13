@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { fmtMoney } from "../utils/helpers";
+import { fmtMoney, MONTHS, contrastColor } from "../utils/helpers";
 
 const FILTERS = [
   { id: "all", label: "Tout" },
@@ -10,10 +10,11 @@ const FILTERS = [
 
 export default function ListView({
   year, entries, startingBalance, setStartingBalance,
-  openEditor, updateEntry, archived,
+  openEditor, updateEntry, archived, types,
 }) {
   const [filter, setFilter] = useState("all");
   const [dragOverId, setDragOverId] = useState(null);
+  const [collapsed, setCollapsed] = useState({});
 
   // Trié chronologiquement, puis par ordre manuel (glisser-déposer / ordre du fichier importé).
   const sorted = useMemo(
@@ -44,6 +45,23 @@ export default function ListView({
     return true;
   });
 
+  // Regroupe par mois (les entrées sans date forment un groupe à part, en premier).
+  const groups = {};
+  visible.forEach((en) => {
+    const key = en.date ? en.date.slice(0, 7) : "0000-00";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(en);
+  });
+  const groupKeys = Object.keys(groups).sort();
+
+  const monthLabel = (key) => {
+    if (key === "0000-00") return "Sans date";
+    const [y, m] = key.split("-");
+    return `${MONTHS[Number(m) - 1]} ${y}`;
+  };
+
+  const toggleMonth = (key) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+
   const handleRowDrop = (targetId, e) => {
     e.preventDefault();
     setDragOverId(null);
@@ -53,7 +71,6 @@ export default function ListView({
     const target = sorted.find((en) => en.id === targetId);
     if (!target) return;
 
-    // Place l'entrée déplacée juste avant la cible, dans le groupe de la date cible.
     const sameDate = sorted.filter((en) => en.date === target.date);
     const idx = sameDate.findIndex((en) => en.id === targetId);
     const prev = sameDate[idx - 1];
@@ -105,62 +122,99 @@ export default function ListView({
         )}
       </div>
 
-      <div className="ledger-table-wrap">
-        <table className="ledger-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Date</th>
-              <th>Description</th>
-              <th>No confirmation</th>
-              <th>Note</th>
-              <th className="num-col">Montant</th>
-              <th>Confirmé</th>
-              <th>Payé</th>
-              <th className="num-col">Solde</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.length === 0 && (
-              <tr><td colSpan={9} className="ledger-empty">Aucune entrée pour ce filtre.</td></tr>
+      {groupKeys.length === 0 && (
+        <p className="empty-hint">Aucune entrée pour ce filtre.</p>
+      )}
+
+      {groupKeys.map((key) => {
+        const rows = groups[key];
+        const monthTotal = rows.reduce((s, en) => s + (Number(en.amount) || 0), 0);
+        const isCollapsed = !!collapsed[key];
+        return (
+          <div className="ledger-month" key={key}>
+            <button className="ledger-month-header" onClick={() => toggleMonth(key)}>
+              <span className="ledger-month-title">
+                <span className="chevron">{isCollapsed ? "▸" : "▾"}</span>
+                <span className="serif">{monthLabel(key)}</span>
+                <span className="ledger-month-count">{rows.length} entrée{rows.length > 1 ? "s" : ""}</span>
+              </span>
+              <span className="mono">{fmtMoney(monthTotal)}</span>
+            </button>
+
+            {!isCollapsed && (
+              <div className="ledger-table-wrap">
+                <table className="ledger-table">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>No confirmation</th>
+                      <th>Note</th>
+                      <th className="num-col">Montant</th>
+                      <th>Confirmé</th>
+                      <th>Payé</th>
+                      <th className="num-col">Solde</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((en) => {
+                      const type = types.find((t) => t.id === en.typeId);
+                      return (
+                        <tr
+                          key={en.id}
+                          className={`${en.paid ? "row-paid" : ""} ${dragOverId === en.id ? "row-drag-over" : ""}`}
+                          onClick={() => openEditor({ ...en, readOnly: archived })}
+                          draggable={!archived}
+                          onDragStart={(e) => e.dataTransfer.setData("text/plain", en.id)}
+                          onDragOver={(e) => { if (!archived) { e.preventDefault(); setDragOverId(en.id); } }}
+                          onDragLeave={() => setDragOverId((prev) => (prev === en.id ? null : prev))}
+                          onDrop={(e) => handleRowDrop(en.id, e)}
+                        >
+                          <td className="drag-handle" title="Glisser pour réordonner">{archived ? "" : "⋮⋮"}</td>
+                          <td className="mono">{en.date || <span className="no-date">Sans date</span>}</td>
+                          <td>
+                            {type ? (
+                              <span
+                                className="type-pill"
+                                style={{ background: type.color, color: contrastColor(type.color) }}
+                              >
+                                {type.name}
+                              </span>
+                            ) : (
+                              <span className="ledger-note">{en.label || "—"}</span>
+                            )}
+                          </td>
+                          <td className="mono">{en.confirmationNumber || ""}</td>
+                          <td className="ledger-note">{en.note || ""}</td>
+                          <td className={`num-col mono ${en.confirmed ? "amount-confirmed" : Number(en.amount) < 0 ? "neg" : "pos"}`}>
+                            {fmtMoney(en.amount)}
+                          </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox" disabled={archived}
+                              checked={!!en.confirmed}
+                              onChange={(e) => updateEntry(en.id, { confirmed: e.target.checked })}
+                            />
+                          </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox" disabled={archived}
+                              checked={!!en.paid}
+                              onChange={(e) => updateEntry(en.id, { paid: e.target.checked })}
+                            />
+                          </td>
+                          <td className="num-col mono">{fmtMoney(en.balance)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
-            {visible.map((en) => (
-              <tr
-                key={en.id}
-                className={`${en.paid ? "row-paid" : en.confirmed ? "row-confirmed" : ""} ${dragOverId === en.id ? "row-drag-over" : ""}`}
-                onClick={() => openEditor({ ...en, readOnly: archived })}
-                draggable={!archived}
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", en.id)}
-                onDragOver={(e) => { if (!archived) { e.preventDefault(); setDragOverId(en.id); } }}
-                onDragLeave={() => setDragOverId((prev) => (prev === en.id ? null : prev))}
-                onDrop={(e) => handleRowDrop(en.id, e)}
-              >
-                <td className="drag-handle" title="Glisser pour réordonner">{archived ? "" : "⋮⋮"}</td>
-                <td className="mono">{en.date || <span className="no-date">Sans date</span>}</td>
-                <td>{en.label}</td>
-                <td className="mono">{en.confirmationNumber || ""}</td>
-                <td className="ledger-note">{en.note || ""}</td>
-                <td className={`num-col mono ${Number(en.amount) < 0 ? "neg" : "pos"}`}>{fmtMoney(en.amount)}</td>
-                <td onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox" disabled={archived}
-                    checked={!!en.confirmed}
-                    onChange={(e) => updateEntry(en.id, { confirmed: e.target.checked })}
-                  />
-                </td>
-                <td onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox" disabled={archived}
-                    checked={!!en.paid}
-                    onChange={(e) => updateEntry(en.id, { paid: e.target.checked })}
-                  />
-                </td>
-                <td className="num-col mono">{fmtMoney(en.balance)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

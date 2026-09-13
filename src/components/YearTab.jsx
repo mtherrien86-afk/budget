@@ -4,7 +4,7 @@ import ListView from "./ListView";
 
 export default function YearTab({
   year, entries, openEditor, updateEntry,
-  archived, onArchiveToggle, startingBalance, setStartingBalance, onClearYear,
+  archived, onArchiveToggle, startingBalance, setStartingBalance, onClearYear, types,
 }) {
   const [view, setView] = useState("list");
 
@@ -44,6 +44,7 @@ export default function YearTab({
           openEditor={openEditor}
           updateEntry={updateEntry}
           archived={archived}
+          types={types}
         />
       ) : (
         <CalendarView
@@ -52,13 +53,14 @@ export default function YearTab({
           openEditor={openEditor}
           updateEntry={updateEntry}
           archived={archived}
+          types={types}
         />
       )}
     </div>
   );
 }
 
-function CalendarView({ year, entries, openEditor, updateEntry, archived }) {
+function CalendarView({ year, entries, openEditor, updateEntry, archived, types }) {
   const [dragOverCell, setDragOverCell] = useState(null);
 
   const entriesByDate = {};
@@ -153,7 +155,7 @@ function CalendarView({ year, entries, openEditor, updateEntry, archived }) {
                         draggable={!archived}
                         onDragStart={(e) => e.dataTransfer.setData("text/plain", en.id)}
                         onClick={() => openEditor({ ...en, readOnly: archived })}
-                        title={`${en.label} — ${fmtMoney(en.amount)}`}
+                        title={`${types.find((t) => t.id === en.typeId)?.name || en.label || "Entrée"} — ${fmtMoney(en.amount)}`}
                       >
                         {fmtMoney(en.amount)}
                       </div>

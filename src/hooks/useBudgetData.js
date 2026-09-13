@@ -60,8 +60,10 @@ export function useBudgetData(budgetId) {
   };
 
   // Génère les entrées manquantes pour une année donnée, sans dupliquer
-  // celles déjà créées pour un même item planifié + date.
-  const generateYear = async (year) => {
+  // celles déjà créées pour un même item planifié + date. `typeIdByPlanItem`
+  // (fourni par l'appelant, qui a résolu/créé les types au préalable) attribue
+  // un type à chaque entrée générée.
+  const generateYear = async (year, typeIdByPlanItem = {}) => {
     const toCreate = [];
     planItems.forEach((pi) => {
       getYearDates(pi, year).forEach((date) => {
@@ -72,6 +74,7 @@ export function useBudgetData(budgetId) {
             date,
             year,
             label: pi.label,
+            typeId: typeIdByPlanItem[pi.id] || null,
             amount: pi.amount,
             confirmed: false,
             paid: false,
@@ -97,6 +100,7 @@ export function useBudgetData(budgetId) {
   const addEntry = (data) =>
     addDoc(entryCol(), {
       planItemId: null,
+      typeId: null,
       confirmed: false,
       paid: false,
       confirmationNumber: "",

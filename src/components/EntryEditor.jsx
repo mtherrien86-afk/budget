@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import TypeSelect from "./TypeSelect";
 
-export default function EntryEditor({ entry, onClose, onSave, onDelete }) {
+export default function EntryEditor({ entry, onClose, onSave, onDelete, types, onCreateType, onUpdateType }) {
   const [local, setLocal] = useState(entry);
   useEffect(() => setLocal(entry), [entry]);
 
@@ -16,8 +17,15 @@ export default function EntryEditor({ entry, onClose, onSave, onDelete }) {
         </h3>
 
         <div className="field">
-          <label>Description</label>
-          <input disabled={readOnly} value={local.label} onChange={(e) => set({ label: e.target.value })} />
+          <label>Type</label>
+          <TypeSelect
+            types={types}
+            value={local.typeId}
+            onChange={(id) => set({ typeId: id })}
+            onCreateType={onCreateType}
+            onUpdateType={onUpdateType}
+            disabled={readOnly}
+          />
         </div>
 
         <div className="field">

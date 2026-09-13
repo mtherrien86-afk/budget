@@ -36,7 +36,7 @@ export function useBudgets(user) {
   // Firestore ne supprime pas les sous-collections automatiquement :
   // on vide planItems + entries avant de supprimer le budget lui-même.
   const deleteBudget = async (id) => {
-    for (const sub of ["planItems", "entries", "years"]) {
+    for (const sub of ["planItems", "entries", "years", "types"]) {
       const snap = await getDocs(collection(db, "budgets", id, sub));
       for (const group of chunk(snap.docs, 400)) {
         const batch = writeBatch(db);
