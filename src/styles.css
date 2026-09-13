@@ -168,6 +168,7 @@ body { margin: 0; }
 .ledger-table tr.row-confirmed:not(.row-paid) { background: color-mix(in srgb, var(--gold) 8%, transparent); }
 .ledger-table tr.row-drag-over { outline: 2px solid var(--red); outline-offset: -2px; }
 .ledger-table .drag-handle { width: 18px; color: var(--ink-soft); cursor: grab; letter-spacing: -2px; font-size: 11px; }
+.ledger-table .no-date { color: var(--ink-soft); font-style: italic; }
 .ledger-empty { text-align: center; color: var(--ink-soft); padding: 24px !important; cursor: default !important; }
 
 /* ---- Buttons ---- */

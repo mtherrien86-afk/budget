@@ -9,7 +9,7 @@ const FILTERS = [
 ];
 
 export default function ListView({
-  entries, startingBalance, setStartingBalance,
+  year, entries, startingBalance, setStartingBalance,
   openEditor, updateEntry, archived,
 }) {
   const [filter, setFilter] = useState("all");
@@ -98,7 +98,7 @@ export default function ListView({
         {!archived && (
           <button
             className="btn secondary small ledger-add"
-            onClick={() => openEditor({ isNew: true, date: new Date().toISOString().slice(0, 10), label: "", amount: 0 })}
+            onClick={() => openEditor({ isNew: true, date: "", year, label: "", amount: 0 })}
           >
             + Ajouter une entrée
           </button>
@@ -136,7 +136,7 @@ export default function ListView({
                 onDrop={(e) => handleRowDrop(en.id, e)}
               >
                 <td className="drag-handle" title="Glisser pour réordonner">{archived ? "" : "⋮⋮"}</td>
-                <td className="mono">{en.date}</td>
+                <td className="mono">{en.date || <span className="no-date">Sans date</span>}</td>
                 <td>{en.label}</td>
                 <td className="mono">{en.confirmationNumber || ""}</td>
                 <td className="ledger-note">{en.note || ""}</td>

@@ -4,6 +4,7 @@ import { useBudgets } from "./hooks/useBudgets";
 import { useBudgetData } from "./hooks/useBudgetData";
 import { useYears } from "./hooks/useYears";
 import { useTheme } from "./hooks/useTheme";
+import { entryYear } from "./utils/helpers";
 import Login from "./components/Login";
 import BudgetSwitcher from "./components/BudgetSwitcher";
 import PlanTab from "./components/PlanTab";
@@ -37,9 +38,7 @@ export default function App() {
   if (auth.loading) return <div className="loading-screen">Chargement…</div>;
   if (!auth.user) return <Login auth={auth} />;
 
-  const entryYears = Array.from(
-    new Set(data.entries.map((en) => Number(String(en.date || "").slice(0, 4))).filter(Boolean))
-  );
+  const entryYears = Array.from(new Set(data.entries.map(entryYear).filter((y) => y !== null)));
   const allYears = Array.from(new Set([CURRENT_YEAR, ...entryYears])).sort((a, b) => a - b);
   const activeYears = [CURRENT_YEAR, ...allYears.filter((y) => y !== CURRENT_YEAR && !years.isArchived(y))];
   const archivedYears = allYears.filter((y) => y !== CURRENT_YEAR && years.isArchived(y));
@@ -51,7 +50,7 @@ export default function App() {
 
   const activeTabIsYear = typeof activeTab === "number";
   const yearEntries = activeTabIsYear
-    ? data.entries.filter((en) => en.date && en.date.startsWith(String(activeTab)))
+    ? data.entries.filter((en) => entryYear(en) === activeTab)
     : [];
 
   return (

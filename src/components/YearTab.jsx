@@ -37,6 +37,7 @@ export default function YearTab({
 
       {view === "list" ? (
         <ListView
+          year={year}
           entries={entries}
           startingBalance={startingBalance}
           setStartingBalance={setStartingBalance}
@@ -140,7 +141,7 @@ function CalendarView({ year, entries, openEditor, updateEntry, archived }) {
                     {!archived && (
                       <button
                         className="day-add" title="Ajouter une entrée"
-                        onClick={() => openEditor({ isNew: true, date: dateStr, label: "", amount: 0 })}
+                        onClick={() => openEditor({ isNew: true, date: dateStr, year, label: "", amount: 0 })}
                       >
                         +
                       </button>

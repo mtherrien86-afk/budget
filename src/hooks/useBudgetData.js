@@ -3,7 +3,7 @@ import {
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { getYearDates, chunk } from "../utils/helpers";
+import { getYearDates, chunk, entryYear } from "../utils/helpers";
 
 export function useBudgetData(budgetId) {
   const [planItems, setPlanItems] = useState([]);
@@ -70,6 +70,7 @@ export function useBudgetData(budgetId) {
           toCreate.push({
             planItemId: pi.id,
             date,
+            year,
             label: pi.label,
             amount: pi.amount,
             confirmed: false,
@@ -91,6 +92,8 @@ export function useBudgetData(budgetId) {
   const updateEntry = (id, patch) => updateDoc(doc(entryCol(), id), patch);
   const deleteEntry = (id) => deleteDoc(doc(entryCol(), id));
 
+  // `data.year` doit toujours être fourni par l'appelant (le composant sait
+  // dans quel onglet-année il se trouve) — la date, elle, reste optionnelle.
   const addEntry = (data) =>
     addDoc(entryCol(), {
       planItemId: null,
@@ -98,13 +101,15 @@ export function useBudgetData(budgetId) {
       paid: false,
       confirmationNumber: "",
       note: "",
+      date: "",
       order: Date.now(),
       ...data,
     });
 
-  // Supprime toutes les entrées d'une année donnée, pour repartir à zéro.
+  // Supprime toutes les entrées d'une année donnée (avec ou sans date précise),
+  // pour repartir à zéro.
   const clearYear = async (year) => {
-    const toDelete = entries.filter((en) => en.date && en.date.startsWith(String(year)));
+    const toDelete = entries.filter((en) => entryYear(en) === Number(year));
     for (const group of chunk(toDelete, 400)) {
       const batch = writeBatch(db);
       group.forEach((en) => batch.delete(doc(entryCol(), en.id)));
@@ -113,9 +118,14 @@ export function useBudgetData(budgetId) {
   };
 
   // Import en masse depuis un fichier CSV/XLSX (voir ImportSheet.jsx) —
-  // conserve l'ordre des lignes du fichier via le champ "order".
+  // conserve l'ordre des lignes du fichier via le champ "order" et déduit
+  // l'année de chaque ligne à partir de sa date.
   const importEntries = async (rows) => {
-    const withOrder = rows.map((data, i) => ({ order: i, ...data }));
+    const withOrder = rows.map((data, i) => ({
+      order: i,
+      year: data.date ? Number(String(data.date).slice(0, 4)) : null,
+      ...data,
+    }));
     for (const group of chunk(withOrder, 400)) {
       const batch = writeBatch(db);
       group.forEach((data) =>

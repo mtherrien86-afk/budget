@@ -19,6 +19,15 @@ export function chunk(arr, size) {
   return out;
 }
 
+// Détermine l'année d'une entrée : priorité au champ "year" explicite
+// (nécessaire pour les entrées sans date), sinon déduit de la date, sinon
+// l'année courante — pour qu'une entrée ne devienne jamais invisible/orpheline.
+export function entryYear(en) {
+  if (en.year !== undefined && en.year !== null && en.year !== "") return Number(en.year);
+  if (en.date) return Number(String(en.date).slice(0, 4));
+  return new Date().getFullYear();
+}
+
 export function getYearDates(planItem, year) {
   const dates = [];
   if (planItem.type === "weekly") {
