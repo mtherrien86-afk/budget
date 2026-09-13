@@ -43,6 +43,7 @@ export function useBudgetData(budgetId) {
   // et qui ne sont ni payées ni confirmées.
   const updatePlanItem = async (id, patch) => {
     const current = planItems.find((p) => p.id === id);
+    setPlanItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     await updateDoc(doc(planCol(), id), patch);
 
     if (current && patch.amount !== undefined && Number(patch.amount) !== Number(current.amount)) {
@@ -51,6 +52,8 @@ export function useBudgetData(budgetId) {
       const toUpdate = entries.filter(
         (en) => en.planItemId === id && Number(en.amount) === oldAmount && !en.paid && !en.confirmed
       );
+      const toUpdateIds = new Set(toUpdate.map((en) => en.id));
+      setEntries((prev) => prev.map((en) => (toUpdateIds.has(en.id) ? { ...en, amount: newAmount } : en)));
       for (const group of chunk(toUpdate, 400)) {
         const batch = writeBatch(db);
         group.forEach((en) => batch.update(doc(entryCol(), en.id), { amount: newAmount }));
@@ -92,8 +95,18 @@ export function useBudgetData(budgetId) {
     }
   };
 
-  const updateEntry = (id, patch) => updateDoc(doc(entryCol(), id), patch);
-  const deleteEntry = (id) => deleteDoc(doc(entryCol(), id));
+  // Mise à jour optimiste : on applique le changement localement tout de
+  // suite (couleurs, cases à cocher, etc. réagissent instantanément) puis on
+  // envoie l'écriture réelle à Firestore, qui confirmera/corrigera ensuite.
+  const updateEntry = (id, patch) => {
+    setEntries((prev) => prev.map((en) => (en.id === id ? { ...en, ...patch } : en)));
+    return updateDoc(doc(entryCol(), id), patch);
+  };
+
+  const deleteEntry = (id) => {
+    setEntries((prev) => prev.filter((en) => en.id !== id));
+    return deleteDoc(doc(entryCol(), id));
+  };
 
   // `data.year` doit toujours être fourni par l'appelant (le composant sait
   // dans quel onglet-année il se trouve) — la date, elle, reste optionnelle.

@@ -35,6 +35,7 @@ input, select, textarea, option {
   font-family: 'Inter', sans-serif;
 }
 select option { background: var(--input-bg); color: var(--ink); }
+input[type="checkbox"] { accent-color: var(--red); width: 16px; height: 16px; cursor: pointer; }
 .app-root, .card, .day-cell, .editor-panel, .import-panel, .login-card, .btn, input, select, textarea {
   transition: background-color .15s ease, border-color .15s ease, color .15s ease;
 }
@@ -83,6 +84,7 @@ select option { background: var(--input-bg); color: var(--ink); }
 .budget-new { display: flex; gap: 6px; }
 .budget-new input {
   font-size: 14px; padding: 7px 9px; border: 1px solid var(--paper-line); border-radius: 6px;
+  background: var(--input-bg); color: var(--ink);
 }
 .budget-actions { display: flex; gap: 6px; }
 
@@ -128,7 +130,7 @@ select option { background: var(--input-bg); color: var(--ink); }
   display: flex; align-items: center; gap: 14px; margin-top: 26px; padding-top: 20px;
   border-top: 1px solid var(--paper-line); flex-wrap: wrap;
 }
-.year-bar select { font-family: 'IBM Plex Mono', monospace; font-size: 15px; padding: 8px 10px; border: 1px solid var(--paper-line); border-radius: 6px; }
+.year-bar select { font-family: 'IBM Plex Mono', monospace; font-size: 15px; padding: 8px 10px; border: 1px solid var(--paper-line); border-radius: 6px; background: var(--input-bg); color: var(--ink); }
 .year-hint { font-size: 12px; color: var(--ink-soft); }
 
 /* ---- Year toolbar / view switch ---- */
