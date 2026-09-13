@@ -76,6 +76,7 @@ export function useBudgetData(budgetId) {
             paid: false,
             confirmationNumber: "",
             note: "",
+            order: 0,
           });
         }
       });
@@ -97,12 +98,25 @@ export function useBudgetData(budgetId) {
       paid: false,
       confirmationNumber: "",
       note: "",
+      order: Date.now(),
       ...data,
     });
 
-  // Import en masse depuis un fichier CSV/XLSX (voir ImportSheet.jsx)
+  // Supprime toutes les entrées d'une année donnée, pour repartir à zéro.
+  const clearYear = async (year) => {
+    const toDelete = entries.filter((en) => en.date && en.date.startsWith(String(year)));
+    for (const group of chunk(toDelete, 400)) {
+      const batch = writeBatch(db);
+      group.forEach((en) => batch.delete(doc(entryCol(), en.id)));
+      await batch.commit();
+    }
+  };
+
+  // Import en masse depuis un fichier CSV/XLSX (voir ImportSheet.jsx) —
+  // conserve l'ordre des lignes du fichier via le champ "order".
   const importEntries = async (rows) => {
-    for (const group of chunk(rows, 400)) {
+    const withOrder = rows.map((data, i) => ({ order: i, ...data }));
+    for (const group of chunk(withOrder, 400)) {
       const batch = writeBatch(db);
       group.forEach((data) =>
         batch.set(doc(entryCol()), {
@@ -121,6 +135,6 @@ export function useBudgetData(budgetId) {
   return {
     planItems, entries, loading,
     addPlanItem, updatePlanItem, deletePlanItem,
-    generateYear, updateEntry, deleteEntry, addEntry, importEntries,
+    generateYear, updateEntry, deleteEntry, addEntry, importEntries, clearYear,
   };
 }

@@ -81,7 +81,7 @@ export default function ImportSheet({ onImport, onClose }) {
     }
     let lastRawDate; // pour les dates "fusionnées" : une cellule vide reprend la date de la ligne précédente
     const toImport = rows
-      .map((r) => {
+      .map((r, index) => {
         let rawDate = r[mapping.date];
         if (rawDate === undefined || rawDate === null || rawDate === "") rawDate = lastRawDate;
         else lastRawDate = rawDate;
@@ -91,6 +91,7 @@ export default function ImportSheet({ onImport, onClose }) {
 
         const entry = {
           date,
+          order: index, // préserve l'ordre exact des lignes du fichier
           amount: Number(r[mapping.amount]) || 0,
           label: mapping.label !== undefined ? String(r[mapping.label] ?? "") : "Importé",
         };

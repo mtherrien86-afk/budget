@@ -4,7 +4,7 @@ import ListView from "./ListView";
 
 export default function YearTab({
   year, entries, openEditor, updateEntry,
-  archived, onArchiveToggle, startingBalance, setStartingBalance,
+  archived, onArchiveToggle, startingBalance, setStartingBalance, onClearYear,
 }) {
   const [view, setView] = useState("list");
 
@@ -17,6 +17,18 @@ export default function YearTab({
         </div>
         <div className="year-toolbar-right">
           {archived && <span className="badge-archived">Archivée</span>}
+          {!archived && entries.length > 0 && (
+            <button
+              className="btn danger small"
+              onClick={() => {
+                if (confirm(`Supprimer les ${entries.length} entrées de ${year}? Cette action est irréversible.`)) {
+                  onClearYear();
+                }
+              }}
+            >
+              Vider cette année
+            </button>
+          )}
           <button className="btn secondary small" onClick={onArchiveToggle}>
             {archived ? "Désarchiver cette année" : "Archiver cette année"}
           </button>

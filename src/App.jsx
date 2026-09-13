@@ -139,6 +139,7 @@ export default function App() {
                 }
                 startingBalance={years.getStartingBalance(activeTab)}
                 setStartingBalance={(v) => years.setStartingBalance(activeTab, v)}
+                onClearYear={() => data.clearYear(activeTab)}
               />
             )}
           </div>

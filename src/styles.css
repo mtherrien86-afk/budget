@@ -166,6 +166,8 @@ body { margin: 0; }
 .ledger-table .ledger-note { color: var(--ink-soft); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ledger-table tr.row-paid { background: color-mix(in srgb, var(--green) 7%, transparent); }
 .ledger-table tr.row-confirmed:not(.row-paid) { background: color-mix(in srgb, var(--gold) 8%, transparent); }
+.ledger-table tr.row-drag-over { outline: 2px solid var(--red); outline-offset: -2px; }
+.ledger-table .drag-handle { width: 18px; color: var(--ink-soft); cursor: grab; letter-spacing: -2px; font-size: 11px; }
 .ledger-empty { text-align: center; color: var(--ink-soft); padding: 24px !important; cursor: default !important; }
 
 /* ---- Buttons ---- */
