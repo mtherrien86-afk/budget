@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { WEEKDAYS_FULL } from "../utils/helpers";
+import { WEEKDAYS_FULL, MONTHS } from "../utils/helpers";
 
 export default function PlanTab({
   planItems, updatePlanItem, addPlanItem, deletePlanItem,
@@ -35,7 +35,8 @@ export default function PlanTab({
           <select value={p.type} onChange={(e) => updatePlanItem(p.id, { type: e.target.value })}>
             <option value="weekly">À la semaine</option>
             <option value="monthly">Chaque mois</option>
-            <option value="specific">Date précise</option>
+            <option value="semimonthly">Le 15 et le dernier jour du mois</option>
+            <option value="specific">Date précise (mois + jour)</option>
           </select>
 
           {p.type === "weekly" && (
@@ -43,19 +44,42 @@ export default function PlanTab({
               {WEEKDAYS_FULL.map((w, i) => <option key={i} value={i}>{w}</option>)}
             </select>
           )}
+
           {p.type === "monthly" && (
-            <input
-              type="number" min="1" max="31" title="Jour du mois"
-              value={p.dayOfMonth}
-              onChange={(e) => updatePlanItem(p.id, { dayOfMonth: e.target.value })}
-            />
+            <div className="plan-detail-group">
+              <input
+                type="number" min="1" max="31" title="Jour du mois"
+                value={p.dayOfMonth}
+                onChange={(e) => updatePlanItem(p.id, { dayOfMonth: e.target.value })}
+              />
+              <span className="plan-detail-label">tous les</span>
+              <input
+                type="number" min="1" max="12" title="Tous les combien de mois"
+                value={p.intervalMonths || 1}
+                onChange={(e) => updatePlanItem(p.id, { intervalMonths: e.target.value })}
+              />
+              <span className="plan-detail-label">mois</span>
+            </div>
           )}
+
+          {p.type === "semimonthly" && (
+            <span className="plan-detail-label">15 et dernier jour (vendredi si week-end)</span>
+          )}
+
           {p.type === "specific" && (
-            <input
-              type="date"
-              value={p.specificDate}
-              onChange={(e) => updatePlanItem(p.id, { specificDate: e.target.value })}
-            />
+            <div className="plan-detail-group">
+              <select
+                value={p.specificMonth || 1}
+                onChange={(e) => updatePlanItem(p.id, { specificMonth: Number(e.target.value) })}
+              >
+                {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+              </select>
+              <input
+                type="number" min="1" max="31" title="Jour"
+                value={p.specificDay || 1}
+                onChange={(e) => updatePlanItem(p.id, { specificDay: Number(e.target.value) })}
+              />
+            </div>
           )}
 
           <button className="btn danger small" onClick={() => deletePlanItem(p.id)}>Retirer</button>

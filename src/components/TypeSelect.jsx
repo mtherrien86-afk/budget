@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PRESET_PALETTE } from "../hooks/useTypes";
+import { contrastColor } from "../utils/helpers";
 
 export default function TypeSelect({ types, value, onChange, onCreateType, onUpdateType, disabled }) {
   const [creating, setCreating] = useState(false);
@@ -7,6 +8,7 @@ export default function TypeSelect({ types, value, onChange, onCreateType, onUpd
   const [newColor, setNewColor] = useState(PRESET_PALETTE[0]);
   const [editingColor, setEditingColor] = useState(false);
 
+  const sortedTypes = [...types].sort((a, b) => a.name.localeCompare(b.name, "fr"));
   const current = types.find((t) => t.id === value);
 
   const handleSelect = (e) => {
@@ -30,7 +32,11 @@ export default function TypeSelect({ types, value, onChange, onCreateType, onUpd
         {current && <span className="type-dot" style={{ background: current.color }} />}
         <select value={value || ""} onChange={handleSelect} disabled={disabled}>
           <option value="">— Aucun type —</option>
-          {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          {sortedTypes.map((t) => (
+            <option key={t.id} value={t.id} style={{ background: t.color, color: contrastColor(t.color) }}>
+              {t.name}
+            </option>
+          ))}
           {!disabled && <option value="__new__">+ Nouveau type…</option>}
         </select>
         {current && !disabled && (

@@ -70,6 +70,17 @@ export default function App() {
     ? data.entries.filter((en) => entryYear(en) === activeTab)
     : [];
 
+  // Recalcule le solde de départ d'une année à partir du solde prévisionnel
+  // de fin de l'année précédente (déclenchable à tout moment, pas seulement
+  // à la création).
+  const recalcStartingBalance = async (year) => {
+    const prevEntries = data.entries.filter((en) => entryYear(en) === year - 1);
+    const prevEnding =
+      years.getStartingBalance(year - 1) +
+      prevEntries.reduce((s, en) => s + (Number(en.amount) || 0), 0);
+    await years.setStartingBalance(year, prevEnding);
+  };
+
   return (
     <div className="app-root">
       <div className="header">
@@ -157,6 +168,7 @@ export default function App() {
                 setStartingBalance={(v) => years.setStartingBalance(activeTab, v)}
                 onClearYear={() => data.clearYear(activeTab)}
                 types={typesHook.types}
+                onRecalcStartingBalance={() => recalcStartingBalance(activeTab)}
               />
             )}
           </div>
@@ -169,8 +181,8 @@ export default function App() {
           onClose={() => setEditing(null)}
           onSave={(patch) => {
             const { isNew, readOnly, id, ...clean } = patch;
-            if (editing.isNew) data.addEntry(clean);
-            else data.updateEntry(editing.id, { ...clean, isNew: false });
+            if (!editing.id) data.addEntry(clean);
+            else data.updateEntry(editing.id, clean);
             setEditing(null);
           }}
           onDelete={() => { data.deleteEntry(editing.id); setEditing(null); }}

@@ -4,7 +4,7 @@ import ListView from "./ListView";
 
 export default function YearTab({
   year, entries, openEditor, updateEntry,
-  archived, onArchiveToggle, startingBalance, setStartingBalance, onClearYear, types,
+  archived, onArchiveToggle, startingBalance, setStartingBalance, onClearYear, types, onRecalcStartingBalance,
 }) {
   const [view, setView] = useState("list");
 
@@ -45,6 +45,7 @@ export default function YearTab({
           updateEntry={updateEntry}
           archived={archived}
           types={types}
+          onRecalcStartingBalance={onRecalcStartingBalance}
         />
       ) : (
         <CalendarView

@@ -38,6 +38,15 @@ export function contrastColor(hex) {
   return luminance > 0.6 ? "#1A1A1A" : "#FFFFFF";
 }
 
+// Recule une date au vendredi précédent si elle tombe un samedi ou dimanche.
+function adjustWeekend(d) {
+  const adjusted = new Date(d);
+  const day = adjusted.getDay(); // 0=dimanche, 6=samedi
+  if (day === 6) adjusted.setDate(adjusted.getDate() - 1);
+  else if (day === 0) adjusted.setDate(adjusted.getDate() - 2);
+  return adjusted;
+}
+
 export function getYearDates(planItem, year) {
   const dates = [];
   if (planItem.type === "weekly") {
@@ -47,14 +56,32 @@ export function getYearDates(planItem, year) {
       d.setDate(d.getDate() + 1);
     }
   } else if (planItem.type === "monthly") {
+    const interval = Math.max(1, Number(planItem.intervalMonths) || 1);
+    const startMonth = ((Number(planItem.startMonth) || 0) % interval + interval) % interval;
     for (let m = 0; m < 12; m++) {
+      if (m % interval !== startMonth % interval) continue;
       const lastDay = new Date(year, m + 1, 0).getDate();
       const day = Math.min(Number(planItem.dayOfMonth) || 1, lastDay);
       dates.push(toDateStr(new Date(year, m, day)));
     }
+  } else if (planItem.type === "semimonthly") {
+    // Le 15 et le dernier jour de chaque mois ; recule au vendredi si week-end.
+    for (let m = 0; m < 12; m++) {
+      dates.push(toDateStr(adjustWeekend(new Date(year, m, 15))));
+      const lastDay = new Date(year, m + 1, 0).getDate();
+      dates.push(toDateStr(adjustWeekend(new Date(year, m, lastDay))));
+    }
   } else if (planItem.type === "specific") {
-    if (planItem.specificDate && planItem.specificDate.startsWith(String(year))) {
-      dates.push(planItem.specificDate);
+    // Mois + jour (pas d'année) : se répète chaque année générée.
+    if (planItem.specificMonth && planItem.specificDay) {
+      const lastDay = new Date(year, planItem.specificMonth, 0).getDate();
+      const day = Math.min(Number(planItem.specificDay), lastDay);
+      dates.push(toDateStr(new Date(year, planItem.specificMonth - 1, day)));
+    } else if (planItem.specificDate) {
+      // Compatibilité avec les anciens items créés avant ce changement.
+      const [, m, d] = planItem.specificDate.split("-").map(Number);
+      const lastDay = new Date(year, m, 0).getDate();
+      dates.push(toDateStr(new Date(year, m - 1, Math.min(d, lastDay))));
     }
   }
   return dates;

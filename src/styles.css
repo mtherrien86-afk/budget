@@ -119,6 +119,9 @@ input[type="checkbox"] { accent-color: var(--red); width: 16px; height: 16px; cu
   width: 100%;
 }
 .plan-row .amount-input { font-family: 'IBM Plex Mono', monospace; }
+.plan-detail-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.plan-detail-group input, .plan-detail-group select { width: auto; min-width: 0; flex: 1 1 50px; }
+.plan-detail-label { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
 
 .add-plan-btn {
   margin-top: 14px; background: transparent; border: 1px dashed var(--ink-soft); color: var(--ink-soft);
@@ -144,6 +147,7 @@ input[type="checkbox"] { accent-color: var(--red); width: 16px; height: 16px; cu
 /* ---- Balance bar / ledger list ---- */
 .balance-bar { display: flex; gap: 28px; align-items: flex-end; margin-bottom: 18px; flex-wrap: wrap; }
 .balance-field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+.balance-field-row { display: flex; gap: 6px; align-items: center; }
 .balance-field input {
   font-family: 'IBM Plex Mono', monospace; font-size: 15px; padding: 7px 9px; width: 140px;
   border: 1px solid var(--paper-line); border-radius: 6px; background: var(--input-bg); color: var(--ink);
@@ -173,8 +177,18 @@ input[type="checkbox"] { accent-color: var(--red); width: 16px; height: 16px; cu
 .ledger-table .ledger-note { color: var(--ink-soft); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ledger-table td.amount-confirmed { background: var(--green); color: #FFFFFF; font-weight: 600; border-radius: 4px; }
 .ledger-table tr.row-paid { background: color-mix(in srgb, var(--green) 22%, transparent); }
+.ledger-table tr.row-warning { background: color-mix(in srgb, var(--gold) 22%, transparent); }
+.ledger-table tr.row-danger { background: color-mix(in srgb, var(--red) 22%, transparent); }
 .ledger-table tr.row-drag-over { outline: 2px solid var(--red); outline-offset: -2px; }
-.ledger-table .drag-handle { width: 18px; color: var(--ink-soft); cursor: grab; letter-spacing: -2px; font-size: 11px; }
+.ledger-table .row-handle-cell { width: 30px; position: relative; text-align: center; }
+.ledger-table .drag-handle { color: var(--ink-soft); cursor: grab; letter-spacing: -2px; font-size: 11px; }
+.row-add-btn {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--ink); color: var(--paper);
+  font-size: 13px; line-height: 1; cursor: pointer; opacity: 0; display: flex; align-items: center; justify-content: center;
+}
+.ledger-table tbody tr:hover .drag-handle { opacity: 0; }
+.ledger-table tbody tr:hover .row-add-btn { opacity: 1; }
 .type-pill {
   display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12.5px; font-weight: 600;
   white-space: nowrap;

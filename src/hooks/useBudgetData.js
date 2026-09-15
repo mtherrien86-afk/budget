@@ -33,7 +33,10 @@ export function useBudgetData(budgetId) {
       type: "monthly",
       weekday: 1,
       dayOfMonth: 1,
-      specificDate: new Date().toISOString().slice(0, 10),
+      intervalMonths: 1,
+      startMonth: 0,
+      specificMonth: new Date().getMonth() + 1,
+      specificDay: new Date().getDate(),
     });
 
   const deletePlanItem = (id) => deleteDoc(doc(planCol(), id));

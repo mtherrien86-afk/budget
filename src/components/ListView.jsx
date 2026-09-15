@@ -10,7 +10,7 @@ const FILTERS = [
 
 export default function ListView({
   year, entries, startingBalance, setStartingBalance,
-  openEditor, updateEntry, archived, types,
+  openEditor, updateEntry, archived, types, onRecalcStartingBalance,
 }) {
   const [filter, setFilter] = useState("all");
   const [dragOverId, setDragOverId] = useState(null);
@@ -37,6 +37,10 @@ export default function ListView({
 
   const soldeReel = startingBalance + entries.filter((e) => e.paid).reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const soldePrevisionnel = startingBalance + entries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+  const unpaidBalances = withBalance.filter((en) => !en.paid).map((en) => en.balance);
+  const minBalance = unpaidBalances.length ? Math.min(...unpaidBalances) : null;
+  const maxBalance = unpaidBalances.length ? Math.max(...unpaidBalances) : null;
 
   const visible = withBalance.filter((en) => {
     if (filter === "unpaid") return !en.paid;
@@ -81,16 +85,33 @@ export default function ListView({
     updateEntry(draggedId, { date: target.date, order: newOrder });
   };
 
+  const rowClass = (en) => {
+    if (en.paid) return "row-paid";
+    if (en.balance < 0) return "row-danger";
+    if (en.balance < 1000) return "row-warning";
+    return "";
+  };
+
   return (
     <div>
       <div className="balance-bar">
         <div className="balance-field">
           <label>Solde de départ</label>
-          <input
-            type="number" step="0.01" disabled={archived}
-            defaultValue={startingBalance}
-            onBlur={(e) => setStartingBalance(e.target.value)}
-          />
+          <div className="balance-field-row">
+            <input
+              type="number" step="0.01" disabled={archived}
+              defaultValue={startingBalance}
+              onBlur={(e) => setStartingBalance(e.target.value)}
+            />
+            {!archived && onRecalcStartingBalance && (
+              <button
+                type="button" className="btn secondary small" title="Recalculer depuis l'année précédente"
+                onClick={onRecalcStartingBalance}
+              >
+                ↻
+              </button>
+            )}
+          </div>
         </div>
         <div className="summary-stat">
           <div className="num mono">{fmtMoney(soldeReel)}</div>
@@ -100,6 +121,18 @@ export default function ListView({
           <div className="num mono">{fmtMoney(soldePrevisionnel)}</div>
           <div className="lbl">Solde prévisionnel (fin d'année)</div>
         </div>
+        {minBalance !== null && (
+          <div className="summary-stat">
+            <div className="num mono" style={{ color: minBalance < 0 ? "var(--red)" : "inherit" }}>{fmtMoney(minBalance)}</div>
+            <div className="lbl">Plus bas solde (non payé)</div>
+          </div>
+        )}
+        {maxBalance !== null && (
+          <div className="summary-stat">
+            <div className="num mono">{fmtMoney(maxBalance)}</div>
+            <div className="lbl">Plus haut solde (non payé)</div>
+          </div>
+        )}
       </div>
 
       <div className="filter-bar">
@@ -115,7 +148,7 @@ export default function ListView({
         {!archived && (
           <button
             className="btn secondary small ledger-add"
-            onClick={() => openEditor({ isNew: true, date: "", year, label: "", amount: 0 })}
+            onClick={() => openEditor({ date: "", year, label: "", amount: 0 })}
           >
             + Ajouter une entrée
           </button>
@@ -163,7 +196,7 @@ export default function ListView({
                       return (
                         <tr
                           key={en.id}
-                          className={`${en.paid ? "row-paid" : ""} ${dragOverId === en.id ? "row-drag-over" : ""}`}
+                          className={`${rowClass(en)} ${dragOverId === en.id ? "row-drag-over" : ""}`}
                           onClick={() => openEditor({ ...en, readOnly: archived })}
                           draggable={!archived}
                           onDragStart={(e) => e.dataTransfer.setData("text/plain", en.id)}
@@ -171,7 +204,17 @@ export default function ListView({
                           onDragLeave={() => setDragOverId((prev) => (prev === en.id ? null : prev))}
                           onDrop={(e) => handleRowDrop(en.id, e)}
                         >
-                          <td className="drag-handle" title="Glisser pour réordonner">{archived ? "" : "⋮⋮"}</td>
+                          <td className="row-handle-cell">
+                            <span className="drag-handle" title="Glisser pour réordonner">{archived ? "" : "⋮⋮"}</span>
+                            {!archived && (
+                              <button
+                                type="button" className="row-add-btn" title="Ajouter une entrée à cette date"
+                                onClick={(e) => { e.stopPropagation(); openEditor({ date: en.date, year, label: "", amount: 0 }); }}
+                              >
+                                +
+                              </button>
+                            )}
+                          </td>
                           <td className="mono">{en.date || <span className="no-date">Sans date</span>}</td>
                           <td>
                             {type ? (
