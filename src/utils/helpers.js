@@ -57,18 +57,15 @@ export function getYearDates(planItem, year) {
     }
   } else if (planItem.type === "monthly") {
     const interval = Math.max(1, Number(planItem.intervalMonths) || 1);
-    const startYear = Number(planItem.startYear) || year;
-    const startMonth = ((Number(planItem.startMonth) || 0) % 12 + 12) % 12; // 0-11
-    const maxOcc = Number(planItem.occurrenceCount) || 0; // 0 = illimité
-
-    for (let m = 0; m < 12; m++) {
-      const monthsFromStart = (year - startYear) * 12 + (m - startMonth);
-      if (monthsFromStart < 0 || monthsFromStart % interval !== 0) continue;
-      const occIndex = monthsFromStart / interval; // 0-based
-      if (maxOcc > 0 && occIndex >= maxOcc) continue;
+    const startMonth = Math.min(11, Math.max(0, (Number(planItem.startMonth) || 1) - 1)); // 0-11
+    const maxOcc = Number(planItem.occurrenceCount) || 0; // 0 = illimité (dans l'année générée)
+    let occ = 0;
+    for (let m = startMonth; m < 12; m += interval) {
+      if (maxOcc > 0 && occ >= maxOcc) break;
       const lastDay = new Date(year, m + 1, 0).getDate();
       const day = Math.min(Number(planItem.dayOfMonth) || 1, lastDay);
       dates.push(toDateStr(new Date(year, m, day)));
+      occ++;
     }
   } else if (planItem.type === "semimonthly") {
     // Le 15 et le dernier jour de chaque mois ; recule au vendredi si week-end.
