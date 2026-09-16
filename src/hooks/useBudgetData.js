@@ -35,6 +35,8 @@ export function useBudgetData(budgetId) {
       dayOfMonth: 1,
       intervalMonths: 1,
       startMonth: 0,
+      startYear: new Date().getFullYear(),
+      occurrenceCount: 0,
       specificMonth: new Date().getMonth() + 1,
       specificDay: new Date().getDate(),
     });

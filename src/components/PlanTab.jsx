@@ -58,7 +58,25 @@ export default function PlanTab({
                 value={p.intervalMonths || 1}
                 onChange={(e) => updatePlanItem(p.id, { intervalMonths: e.target.value })}
               />
-              <span className="plan-detail-label">mois</span>
+              <span className="plan-detail-label">mois, à partir de</span>
+              <select
+                value={p.startMonth ?? 0}
+                onChange={(e) => updatePlanItem(p.id, { startMonth: Number(e.target.value) })}
+              >
+                {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+              </select>
+              <input
+                type="number" min="2000" max="2100" title="Année de départ"
+                value={p.startYear ?? thisYear}
+                onChange={(e) => updatePlanItem(p.id, { startYear: e.target.value })}
+              />
+              <span className="plan-detail-label">pour</span>
+              <input
+                type="number" min="0" title="Nombre de fois (0 = illimité)"
+                value={p.occurrenceCount ?? 0}
+                onChange={(e) => updatePlanItem(p.id, { occurrenceCount: e.target.value })}
+              />
+              <span className="plan-detail-label">fois (0 = illimité)</span>
             </div>
           )}
 
