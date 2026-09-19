@@ -40,9 +40,18 @@ export default function PlanTab({
           </select>
 
           {p.type === "weekly" && (
-            <select value={p.weekday} onChange={(e) => updatePlanItem(p.id, { weekday: e.target.value })}>
-              {WEEKDAYS_FULL.map((w, i) => <option key={i} value={i}>{w}</option>)}
-            </select>
+            <div className="plan-detail-group">
+              <select value={p.weekday} onChange={(e) => updatePlanItem(p.id, { weekday: e.target.value })}>
+                {WEEKDAYS_FULL.map((w, i) => <option key={i} value={i}>{w}</option>)}
+              </select>
+              <span className="plan-detail-label">tous les</span>
+              <input
+                type="number" min="1" max="52" title="Tous les combien de semaines"
+                value={p.intervalWeeks || 1}
+                onChange={(e) => updatePlanItem(p.id, { intervalWeeks: e.target.value })}
+              />
+              <span className="plan-detail-label">semaine(s)</span>
+            </div>
           )}
 
           {p.type === "monthly" && (

@@ -32,6 +32,7 @@ export function useBudgetData(budgetId) {
       amount: 0,
       type: "monthly",
       weekday: 1,
+      intervalWeeks: 1,
       dayOfMonth: 1,
       intervalMonths: 1,
       startMonth: 1,

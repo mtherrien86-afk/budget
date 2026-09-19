@@ -50,10 +50,13 @@ function adjustWeekend(d) {
 export function getYearDates(planItem, year) {
   const dates = [];
   if (planItem.type === "weekly") {
+    const interval = Math.max(1, Number(planItem.intervalWeeks) || 1);
+    const weekday = Number(planItem.weekday);
     const d = new Date(year, 0, 1);
+    while (d.getDay() !== weekday) d.setDate(d.getDate() + 1);
     while (d.getFullYear() === year) {
-      if (d.getDay() === Number(planItem.weekday)) dates.push(toDateStr(d));
-      d.setDate(d.getDate() + 1);
+      dates.push(toDateStr(d));
+      d.setDate(d.getDate() + interval * 7);
     }
   } else if (planItem.type === "monthly") {
     const interval = Math.max(1, Number(planItem.intervalMonths) || 1);
