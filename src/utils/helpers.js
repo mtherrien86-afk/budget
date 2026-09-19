@@ -52,7 +52,9 @@ export function getYearDates(planItem, year) {
   if (planItem.type === "weekly") {
     const interval = Math.max(1, Number(planItem.intervalWeeks) || 1);
     const weekday = Number(planItem.weekday);
-    const d = new Date(year, 0, 1);
+    const startMonth = Number(planItem.weekStartMonth) || 1;
+    const startDay = Number(planItem.weekStartDay) || 1;
+    const d = new Date(year, startMonth - 1, startDay);
     while (d.getDay() !== weekday) d.setDate(d.getDate() + 1);
     while (d.getFullYear() === year) {
       dates.push(toDateStr(d));

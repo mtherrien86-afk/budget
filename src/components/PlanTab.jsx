@@ -50,7 +50,18 @@ export default function PlanTab({
                 value={p.intervalWeeks || 1}
                 onChange={(e) => updatePlanItem(p.id, { intervalWeeks: e.target.value })}
               />
-              <span className="plan-detail-label">semaine(s)</span>
+              <span className="plan-detail-label">semaine(s), à partir du</span>
+              <input
+                type="number" min="1" max="31" title="Jour de départ"
+                value={p.weekStartDay ?? 1}
+                onChange={(e) => updatePlanItem(p.id, { weekStartDay: e.target.value })}
+              />
+              <select
+                value={p.weekStartMonth ?? 1}
+                onChange={(e) => updatePlanItem(p.id, { weekStartMonth: Number(e.target.value) })}
+              >
+                {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+              </select>
             </div>
           )}
 
